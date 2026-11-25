@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento IoT</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <span class="categoria">PROJETO INTEGRADOR | IoT</span>
+            <h1>Monitoramento Ambiental</h1>
+            <p>Sistema de monitoramento de temperatura e umidade</p>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <section class="status-bar">
+            <div>
+                <span class="label">Dispositivo</span>
+                <strong id="dispositivo">--</strong>
+            </div>
+
+            <div>
+                <span class="label">Transmissão</span>
+                <strong id="conexao" class="badge neutro">
+                    Aguardando dados
+                </strong>
+            </div>
+
+            <div>
+                <span class="label">Última atualização</span>
+                <strong id="atualizacao">--</strong>
+            </div>
+        </section>
+
+        <section class="cards">
+
+            <article class="card">
+                <h2>Temperatura</h2>
+                <div class="valor">
+                    <span id="temperatura">--</span>
+                    <span class="unidade">°C</span>
+                </div>
+                <p>Limite de alerta: 30 °C</p>
+            </article>
+
+            <article class="card">
+                <h2>Umidade relativa</h2>
+                <div class="valor">
+                    <span id="umidade">--</span>
+                    <span class="unidade">%</span>
+                </div>
+                <p>Umidade relativa do ambiente</p>
+            </article>
+
+            <article class="card">
+                <h2>Condição ambiental</h2>
+                <div id="alerta" class="badge neutro">
+                    Aguardando dados
+                </div>
+                <p id="mensagem-alerta">
+                    Nenhuma leitura disponível.
+                </p>
+            </article>
+
+        </section>
+
+        <section class="painel">
+            <h2>Histórico de temperatura</h2>
+            <p>Evolução das últimas medições em °C.</p>
+            <canvas id="grafico-temperatura"></canvas>
+        </section>
+
+        <section class="painel">
+            <h2>Histórico de umidade</h2>
+            <p>Evolução das últimas medições em %.</p>
+            <canvas id="grafico-umidade"></canvas>
+        </section>
+
+        <section class="painel">
+            <h2>Últimas leituras</h2>
+            <div class="tabela-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data e horário</th>
+                            <th>Dispositivo</th>
+                            <th>Temperatura</th>
+                            <th>Umidade</th>
+                            <th>Condição</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historico">
+                        <tr>
+                            <td colspan="5">
+                                Aguardando leituras...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <p id="mensagem-erro" role="status"></p>
+
+    </main>
+
+    <footer>
+        <p>Projeto Integrador de Monitoramento IoT</p>
+        <p>ESP32 · DHT22 · Supabase · Cloudflare Pages</p>
+    </footer>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
