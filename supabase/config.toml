@@ -1,0 +1,3 @@
+# Configuração da Edge Function de monitoramento
+[functions.leituras]
+verify_jwt = false
