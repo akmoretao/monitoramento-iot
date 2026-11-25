@@ -12,7 +12,7 @@ Simular o monitoramento ambiental de uma sala de servidores, utilizando um ESP32
 - [Simulação no Wokwi](https://wokwi.com/projects/481619803001977857)
 - [Painel web](https://monitoramento-iot.pages.dev)
 - [API REST](https://wbtuhibegvmlhofnxxyv.supabase.co/functions/v1/leituras)
-- Vídeo de demonstração: https://youtu.be/vwViv0Z1Xzs
+- [Vídeo de demonstração](https://youtu.be/vwViv0Z1Xzs)
 
 ## Arquitetura e tecnologias
 
