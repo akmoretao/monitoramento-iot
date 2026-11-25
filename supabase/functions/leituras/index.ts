@@ -71,8 +71,21 @@ Deno.serve(async (req) => {
         return resposta({ erro: "Dados inválidos" }, 400);
       }
 
-      // Condição de alerta
-      const alerta = temperatura >= 30;
+// Limites operacionais do Data Center
+const TEMP_MIN = 18;
+const TEMP_MAX = 27;
+const UMID_MIN = 40;
+const UMID_MAX = 60;
+
+// Verificacao das condicoes ambientais
+const alertaTemperatura =
+  temperatura < TEMP_MIN || temperatura > TEMP_MAX;
+
+const alertaUmidade =
+  umidade < UMID_MIN || umidade > UMID_MAX;
+
+// Condicao geral de alerta
+const alerta = alertaTemperatura || alertaUmidade;
 
       // Armazenamento no banco de dados
       const { data, error } = await supabase
