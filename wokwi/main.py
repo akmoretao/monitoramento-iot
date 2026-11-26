@@ -8,7 +8,10 @@ from machine import Pin
 # Configuracoes do dispositivo
 DISPOSITIVO = "ESP32-01"
 INTERVALO = 10
-LIMITE_TEMPERATURA = 30
+TEMP_MIN = 18
+TEMP_MAX = 27
+UMID_MIN = 40
+UMID_MAX = 60
 
 # Endereco da API REST
 API_URL = "https://wbtuhibegvmlhofnxxyv.supabase.co/functions/v1/leituras"
@@ -76,14 +79,31 @@ while True:
         umidade = sensor.humidity()
 
         # Processamento local
-        alerta = temperatura >= LIMITE_TEMPERATURA
+        alerta_temp = temperatura < TEMP_MIN or temperatura > TEMP_MAX
+        alerta_umid = umidade < UMID_MIN or umidade > UMID_MAX
 
         print("-----------------------------")
         print("Temperatura:", temperatura, "C")
         print("Umidade:", umidade, "%")
 
-        if alerta:
-            print("Status: ALERTA")
+        if temperatura < TEMP_MIN:
+            print("Temperatura: ABAIXO DO LIMITE")
+        elif temperatura > TEMP_MAX:
+            print("Temperatura: ACIMA DO LIMITE")
+        else:
+            print("Temperatura: NORMAL")
+
+        if umidade < UMID_MIN:
+            print("Umidade: ABAIXO DO LIMITE")
+        elif umidade > UMID_MAX:
+            print("Umidade: ACIMA DO LIMITE")
+        else:
+            print("Umidade: NORMAL")
+
+        if alerta_temp and alerta_umid:
+            print("Status: CRITICO")
+        elif alerta_temp or alerta_umid:
+            print("Status: ATENCAO")
         else:
             print("Status: NORMAL")
 
