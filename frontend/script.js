@@ -1,56 +1,229 @@
-// Configuracoes do sistema
+// Configuracoes da API e dos intervalos
 const API_URL = "https://wbtuhibegvmlhofnxxyv.supabase.co/functions/v1/leituras";
 const INTERVALO = 5000;
 const LIMITE_DESATUALIZACAO = 60000;
+
+// Limites operacionais do Data Center
+const TEMP_MIN = 18;
+const TEMP_MAX = 27;
+const UMID_MIN = 40;
+const UMID_MAX = 60;
 
 let ultimaLeitura = null;
 let historico = [];
 let erroConexao = false;
 
-// Formata o horario para o horario de Brasilia
+// Formatacao dos dados
 function formatarData(data) {
     return new Date(data).toLocaleString("pt-BR", {
         timeZone: "America/Sao_Paulo"
     });
 }
 
-// Formata os valores numericos
 function formatarValor(valor) {
     return Number(valor).toFixed(1).replace(".", ",");
 }
 
-// Atualiza os indicadores de status
 function atualizarBadge(id, texto, classe) {
     const elemento = document.getElementById(id);
     elemento.textContent = texto;
     elemento.className = "badge " + classe;
 }
 
-// Verifica se as leituras estao desatualizadas
-function verificarConexao() {
+// Classificacao individual das grandezas
+function classificarGrandeza(valor, minimo, maximo) {
+    if (valor < minimo) {
+        return "baixo";
+    }
+
+    if (valor > maximo) {
+        return "alto";
+    }
+
+    return "normal";
+}
+
+// Classificacao operacional
+function classificarLeitura(leitura) {
+    const temperatura = classificarGrandeza(
+        leitura.temperatura,
+        TEMP_MIN,
+        TEMP_MAX
+    );
+
+    const umidade = classificarGrandeza(
+        leitura.umidade,
+        UMID_MIN,
+        UMID_MAX
+    );
+
+    const alertaTemp = temperatura !== "normal";
+    const alertaUmid = umidade !== "normal";
+
+    let status = "NORMAL";
+    let classe = "normal";
+
+    if (alertaTemp && alertaUmid) {
+        status = "CRÍTICO";
+        classe = "critico";
+    } else if (alertaTemp || alertaUmid) {
+        status = "ATENÇÃO";
+        classe = "atencao";
+    }
+
+    return {
+        temperatura,
+        umidade,
+        status,
+        classe
+    };
+}
+
+// Indicadores individuais
+function atualizarGrandeza(id, condicao) {
+    if (condicao === "baixo") {
+        atualizarBadge(id, "ABAIXO DO LIMITE", "atencao");
+    } else if (condicao === "alto") {
+        atualizarBadge(id, "ACIMA DO LIMITE", "atencao");
+    } else {
+        atualizarBadge(id, "NORMAL", "normal");
+    }
+}
+
+// Verificacao da idade da ultima leitura
+function dadosDesatualizados() {
+    if (!ultimaLeitura) {
+        return false;
+    }
+
+    const horario = new Date(
+        ultimaLeitura.criado_em
+    ).getTime();
+
+    return Date.now() - horario > LIMITE_DESATUALIZACAO;
+}
+
+// Recomendacoes operacionais
+function atualizarRecomendacoes() {
+    const lista = document.getElementById("recomendacoes");
+    lista.replaceChildren();
+
+    function adicionar(texto, classe) {
+        const item = document.createElement("li");
+        item.textContent = texto;
+        item.className = classe;
+        lista.appendChild(item);
+    }
+
     if (erroConexao) {
-        atualizarBadge("conexao", "Falha na consulta", "offline");
+        adicionar(
+            "Falha na consulta. Verifique a conexão com a API.",
+            "atencao"
+        );
         return;
     }
 
     if (!ultimaLeitura) {
-        atualizarBadge("conexao", "Aguardando dados", "neutro");
+        adicionar(
+            "Aguardando medições do dispositivo.",
+            "neutro"
+        );
         return;
     }
 
-    const horario = new Date(ultimaLeitura.criado_em).getTime();
-    const diferenca = Date.now() - horario;
+    if (dadosDesatualizados()) {
+        adicionar(
+            "Dados desatualizados. Verifique a conectividade do ESP32 antes de tomar decisões.",
+            "atencao"
+        );
+        return;
+    }
 
-    if (diferenca > LIMITE_DESATUALIZACAO) {
-        atualizarBadge("conexao", "Dados desatualizados", "desatualizado");
-    } else {
-        atualizarBadge("conexao", "Transmissao ativa", "online");
+    const condicao = classificarLeitura(ultimaLeitura);
+
+    if (condicao.classe === "normal") {
+        adicionar(
+            "Temperatura e umidade dentro das faixas operacionais. Nenhuma intervenção necessária.",
+            "normal"
+        );
+        return;
+    }
+
+    if (condicao.classe === "critico") {
+        adicionar(
+            "As duas grandezas estão fora dos limites. Priorize a verificação das condições ambientais.",
+            "critico"
+        );
+    }
+
+    if (condicao.temperatura === "baixo") {
+        adicionar(
+            "Temperatura baixa: verifique a refrigeração excessiva e o consumo de energia.",
+            "atencao"
+        );
+    }
+
+    if (condicao.temperatura === "alto") {
+        adicionar(
+            "Temperatura alta: verifique o sistema de refrigeração e a circulação de ar.",
+            "atencao"
+        );
+    }
+
+    if (condicao.umidade === "baixo") {
+        adicionar(
+            "Umidade baixa: verifique a umidificação e a proteção contra descargas eletrostáticas.",
+            "atencao"
+        );
+    }
+
+    if (condicao.umidade === "alto") {
+        adicionar(
+            "Umidade alta: verifique a desumidificação e o possível risco de condensação.",
+            "atencao"
+        );
     }
 }
 
-// Atualiza os valores atuais
+// Status da transmissao
+function verificarConexao() {
+    if (erroConexao) {
+        atualizarBadge(
+            "conexao",
+            "Falha na consulta",
+            "offline"
+        );
+
+    } else if (!ultimaLeitura) {
+        atualizarBadge(
+            "conexao",
+            "Aguardando dados",
+            "neutro"
+        );
+
+    } else if (dadosDesatualizados()) {
+        atualizarBadge(
+            "conexao",
+            "Dados desatualizados",
+            "desatualizado"
+        );
+
+    } else {
+        atualizarBadge(
+            "conexao",
+            "Transmissão ativa",
+            "online"
+        );
+    }
+
+    atualizarRecomendacoes();
+}
+
+// Atualizacao dos valores atuais
 function atualizarPainel(leitura) {
-    if (!leitura) return;
+    if (!leitura) {
+        return;
+    }
 
     document.getElementById("dispositivo").textContent =
         leitura.dispositivo;
@@ -64,22 +237,74 @@ function atualizarPainel(leitura) {
     document.getElementById("atualizacao").textContent =
         formatarData(leitura.criado_em);
 
-    if (leitura.alerta) {
-        atualizarBadge("alerta", "ALERTA", "alerta");
+    const condicao = classificarLeitura(leitura);
 
-        document.getElementById("mensagem-alerta").textContent =
-            "Temperatura igual ou superior a 30 °C.";
-    } else {
-        atualizarBadge("alerta", "NORMAL", "normal");
+    atualizarGrandeza(
+        "status-temperatura",
+        condicao.temperatura
+    );
 
-        document.getElementById("mensagem-alerta").textContent =
-            "Temperatura dentro do limite estabelecido.";
-    }
+    atualizarGrandeza(
+        "status-umidade",
+        condicao.umidade
+    );
+
+    atualizarBadge(
+        "alerta",
+        condicao.status,
+        condicao.classe
+    );
+
+    const mensagens = {
+        normal: "Temperatura e umidade dentro dos limites.",
+        atencao: "Uma das grandezas está fora da faixa operacional.",
+        critico: "Temperatura e umidade fora das faixas operacionais."
+    };
+
+    document.getElementById("mensagem-alerta").textContent =
+        mensagens[condicao.classe];
 
     verificarConexao();
 }
 
-// Atualiza a tabela com as ultimas 20 leituras
+// Estatisticas das ultimas 100 medicoes
+function atualizarEstatisticas(dados) {
+    const ids = [
+        "temp-min",
+        "temp-max",
+        "umid-min",
+        "umid-max"
+    ];
+
+    if (dados.length === 0) {
+        ids.forEach(id => {
+            document.getElementById(id).textContent = "--";
+        });
+        return;
+    }
+
+    const temperaturas = dados.map(
+        leitura => Number(leitura.temperatura)
+    );
+
+    const umidades = dados.map(
+        leitura => Number(leitura.umidade)
+    );
+
+    document.getElementById("temp-min").textContent =
+        formatarValor(Math.min(...temperaturas));
+
+    document.getElementById("temp-max").textContent =
+        formatarValor(Math.max(...temperaturas));
+
+    document.getElementById("umid-min").textContent =
+        formatarValor(Math.min(...umidades));
+
+    document.getElementById("umid-max").textContent =
+        formatarValor(Math.max(...umidades));
+}
+
+// Tabela de historico
 function atualizarTabela(dados) {
     const tabela = document.getElementById("historico");
     tabela.replaceChildren();
@@ -88,7 +313,7 @@ function atualizarTabela(dados) {
         const linha = tabela.insertRow();
         const celula = linha.insertCell();
         celula.colSpan = 5;
-        celula.textContent = "Nenhuma leitura disponivel.";
+        celula.textContent = "Nenhuma leitura disponível.";
         return;
     }
 
@@ -106,23 +331,28 @@ function atualizarTabela(dados) {
             linha.insertCell().textContent = valor;
         });
 
+        const condicao = classificarLeitura(leitura);
+
         const celula = linha.insertCell();
         const indicador = document.createElement("span");
 
-        indicador.className = leitura.alerta
-            ? "badge alerta"
-            : "badge normal";
-
-        indicador.textContent = leitura.alerta
-            ? "ALERTA"
-            : "NORMAL";
+        indicador.className = "badge " + condicao.classe;
+        indicador.textContent = condicao.status;
 
         celula.appendChild(indicador);
     });
 }
 
-// Desenha os graficos utilizando Canvas
-function desenharGrafico(id, dados, campo, cor, unidade) {
+// Graficos de historico
+function desenharGrafico(
+    id,
+    dados,
+    campo,
+    cor,
+    unidade,
+    limiteMin,
+    limiteMax
+) {
     const canvas = document.getElementById(id);
     const ctx = canvas.getContext("2d");
 
@@ -130,24 +360,28 @@ function desenharGrafico(id, dados, campo, cor, unidade) {
     const altura = canvas.clientHeight;
     const escala = window.devicePixelRatio || 1;
 
+    if (largura < 100) {
+        return;
+    }
+
     canvas.width = largura * escala;
     canvas.height = altura * escala;
 
     ctx.scale(escala, escala);
     ctx.clearRect(0, 0, largura, altura);
-
     ctx.font = "12px Arial";
 
     if (dados.length === 0) {
         ctx.fillStyle = "#94a3b8";
-        ctx.fillText("Nenhuma leitura disponivel.", 20, 30);
+        ctx.fillText("Nenhuma leitura disponível.", 20, 30);
         return;
     }
 
-    // Organiza os dados do mais antigo ao mais recente
     const registros = [...dados].reverse();
 
-    const valores = registros.map(item => Number(item[campo]));
+    const valores = registros.map(
+        item => Number(item[campo])
+    );
 
     const margem = {
         esquerda: 55,
@@ -156,21 +390,23 @@ function desenharGrafico(id, dados, campo, cor, unidade) {
         inferior: 40
     };
 
-    const areaLargura = largura - margem.esquerda - margem.direita;
-    const areaAltura = altura - margem.superior - margem.inferior;
+    const areaLargura =
+        largura - margem.esquerda - margem.direita;
 
-    let minimo = Math.floor(Math.min(...valores) - 5);
-    let maximo = Math.ceil(Math.max(...valores) + 5);
+    const areaAltura =
+        altura - margem.superior - margem.inferior;
+
+    let minimo = Math.floor(
+        Math.min(...valores, limiteMin) - 5
+    );
+
+    let maximo = Math.ceil(
+        Math.max(...valores, limiteMax) + 5
+    );
 
     if (campo === "umidade") {
         minimo = 0;
         maximo = 100;
-    }
-
-    // Mantem o limite de alerta visivel
-    if (campo === "temperatura") {
-        minimo = Math.min(minimo, 25);
-        maximo = Math.max(maximo, 35);
     }
 
     function posicaoX(indice) {
@@ -184,10 +420,21 @@ function desenharGrafico(id, dados, campo, cor, unidade) {
 
     function posicaoY(valor) {
         return margem.superior + areaAltura -
-            ((valor - minimo) / (maximo - minimo)) * areaAltura;
+            ((valor - minimo) / (maximo - minimo)) *
+            areaAltura;
     }
 
-    // Linhas horizontais e escala
+    // Destaca a faixa operacional adequada
+    ctx.fillStyle = "rgba(74, 222, 128, 0.07)";
+
+    ctx.fillRect(
+        margem.esquerda,
+        posicaoY(limiteMax),
+        areaLargura,
+        posicaoY(limiteMin) - posicaoY(limiteMax)
+    );
+
+    // Linhas e escala vertical
     for (let i = 0; i <= 5; i++) {
         const valor = minimo + (maximo - minimo) * i / 5;
         const y = posicaoY(valor);
@@ -204,11 +451,12 @@ function desenharGrafico(id, dados, campo, cor, unidade) {
         ctx.fillText(valor.toFixed(0) + unidade, 5, y + 4);
     }
 
-    // Linha de limite de temperatura
-    if (campo === "temperatura") {
-        const y = posicaoY(30);
+    // Limites operacionais
+    function desenharLimite(valor, texto) {
+        const y = posicaoY(valor);
 
         ctx.strokeStyle = "#f87171";
+        ctx.lineWidth = 1;
         ctx.setLineDash([6, 6]);
 
         ctx.beginPath();
@@ -217,15 +465,21 @@ function desenharGrafico(id, dados, campo, cor, unidade) {
         ctx.stroke();
 
         ctx.setLineDash([]);
-
         ctx.fillStyle = "#f87171";
-        ctx.fillText("Limite: 30 °C", margem.esquerda + 5, y - 8);
+
+        ctx.fillText(
+            texto + ": " + valor + unidade,
+            margem.esquerda + 5,
+            y - 7
+        );
     }
+
+    desenharLimite(limiteMin, "Mínimo");
+    desenharLimite(limiteMax, "Máximo");
 
     // Linha das medicoes
     ctx.strokeStyle = cor;
     ctx.lineWidth = 2;
-
     ctx.beginPath();
 
     valores.forEach((valor, indice) => {
@@ -241,10 +495,16 @@ function desenharGrafico(id, dados, campo, cor, unidade) {
 
     ctx.stroke();
 
-    // Pontos das medicoes
+    // Pontos fora da faixa ficam vermelhos
     valores.forEach((valor, indice) => {
+        const foraDoLimite =
+            valor < limiteMin || valor > limiteMax;
+
         ctx.beginPath();
-        ctx.fillStyle = cor;
+
+        ctx.fillStyle = foraDoLimite
+            ? "#f87171"
+            : cor;
 
         ctx.arc(
             posicaoX(indice),
@@ -259,29 +519,37 @@ function desenharGrafico(id, dados, campo, cor, unidade) {
 
     // Horarios inicial e final
     ctx.fillStyle = "#94a3b8";
-
-    const primeiro = formatarData(registros[0].criado_em);
-    const ultimo = formatarData(
-        registros[registros.length - 1].criado_em
-    );
-
     ctx.textAlign = "left";
-    ctx.fillText(primeiro, margem.esquerda, altura - 10);
+
+    ctx.fillText(
+        formatarData(registros[0].criado_em),
+        margem.esquerda,
+        altura - 10
+    );
 
     if (registros.length > 1 && largura > 420) {
         ctx.textAlign = "right";
-        ctx.fillText(ultimo, largura - margem.direita, altura - 10);
+
+        ctx.fillText(
+            formatarData(
+                registros[registros.length - 1].criado_em
+            ),
+            largura - margem.direita,
+            altura - 10
+        );
     }
 }
 
-// Atualiza os dois graficos
+// Atualiza os graficos
 function atualizarGraficos() {
     desenharGrafico(
         "grafico-temperatura",
         historico,
         "temperatura",
         "#38bdf8",
-        "°C"
+        "°C",
+        TEMP_MIN,
+        TEMP_MAX
     );
 
     desenharGrafico(
@@ -289,7 +557,9 @@ function atualizarGraficos() {
         historico,
         "umidade",
         "#4ade80",
-        "%"
+        "%",
+        UMID_MIN,
+        UMID_MAX
     );
 }
 
@@ -304,13 +574,15 @@ async function consultarAPI(tipo) {
     );
 
     if (!resposta.ok) {
-        throw new Error("Erro HTTP: " + resposta.status);
+        throw new Error(
+            "Erro HTTP: " + resposta.status
+        );
     }
 
     return resposta.json();
 }
 
-// Atualizacao automatica do painel
+// Atualizacao automatica
 async function atualizarDados() {
     try {
         const dados = await Promise.all([
@@ -323,9 +595,12 @@ async function atualizarDados() {
 
         erroConexao = false;
 
-        document.getElementById("mensagem-erro").textContent = "";
+        document.getElementById(
+            "mensagem-erro"
+        ).textContent = "";
 
         atualizarPainel(ultimaLeitura);
+        atualizarEstatisticas(historico);
         atualizarTabela(historico);
         atualizarGraficos();
         verificarConexao();
@@ -335,8 +610,10 @@ async function atualizarDados() {
 
         erroConexao = true;
 
-        document.getElementById("mensagem-erro").textContent =
-            "Nao foi possivel consultar a API. Nova tentativa automatica.";
+        document.getElementById(
+            "mensagem-erro"
+        ).textContent =
+            "Não foi possível consultar a API. Nova tentativa automática.";
 
         verificarConexao();
 
@@ -345,11 +622,14 @@ async function atualizarDados() {
     }
 }
 
-// Verifica o estado da transmissao continuamente
+// Monitoramento continuo da transmissao
 setInterval(verificarConexao, 1000);
 
-// Redimensiona os graficos quando necessario
-window.addEventListener("resize", atualizarGraficos);
+// Responsividade dos graficos
+window.addEventListener(
+    "resize",
+    atualizarGraficos
+);
 
 // Inicia o monitoramento
 atualizarDados();
