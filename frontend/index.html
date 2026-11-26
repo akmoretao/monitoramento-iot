@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoramento IoT</title>
+    <meta name="theme-color" content="#0f172a">
+    <title>DataCenter Guard | Monitoramento IoT</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,8 +12,8 @@
     <header>
         <div class="container">
             <span class="categoria">PROJETO INTEGRADOR | IoT</span>
-            <h1>Monitoramento Ambiental</h1>
-            <p>Sistema de monitoramento de temperatura e umidade</p>
+            <h1>DataCenter<span class="destaque"> Guard</span></h1>
+            <p>Sistema IoT de monitoramento ambiental de Data Centers</p>
         </div>
     </header>
 
@@ -37,52 +38,144 @@
             </div>
         </section>
 
+        <h2 class="titulo-secao">Condições ambientais</h2>
+
         <section class="cards">
 
             <article class="card">
                 <h2>Temperatura</h2>
+
                 <div class="valor">
                     <span id="temperatura">--</span>
                     <span class="unidade">°C</span>
                 </div>
-                <p>Limite de alerta: 30 °C</p>
+
+                <span id="status-temperatura" class="badge neutro">
+                    Aguardando dados
+                </span>
+
+                <div class="faixa">
+                    <div>
+                        <span class="label">Mínimo permitido</span>
+                        <strong>18 °C</strong>
+                    </div>
+                    <div>
+                        <span class="label">Máximo permitido</span>
+                        <strong>27 °C</strong>
+                    </div>
+                </div>
             </article>
 
             <article class="card">
                 <h2>Umidade relativa</h2>
+
                 <div class="valor">
                     <span id="umidade">--</span>
                     <span class="unidade">%</span>
                 </div>
-                <p>Umidade relativa do ambiente</p>
+
+                <span id="status-umidade" class="badge neutro">
+                    Aguardando dados
+                </span>
+
+                <div class="faixa">
+                    <div>
+                        <span class="label">Mínimo permitido</span>
+                        <strong>40%</strong>
+                    </div>
+                    <div>
+                        <span class="label">Máximo permitido</span>
+                        <strong>60%</strong>
+                    </div>
+                </div>
             </article>
 
             <article class="card">
-                <h2>Condição ambiental</h2>
+                <h2>Condição operacional</h2>
+
                 <div id="alerta" class="badge neutro">
                     Aguardando dados
                 </div>
+
                 <p id="mensagem-alerta">
                     Nenhuma leitura disponível.
                 </p>
+
+                <div class="legenda-status">
+                    <span class="badge normal">NORMAL</span>
+                    <span class="badge atencao">ATENÇÃO</span>
+                    <span class="badge critico">CRÍTICO</span>
+                </div>
+            </article>
+
+        </section>
+
+        <section class="painel">
+            <h2>Recomendações operacionais</h2>
+            <p>Ações sugeridas com base nas condições ambientais.</p>
+
+            <ul id="recomendacoes" class="recomendacoes">
+                <li>Aguardando medições do dispositivo.</li>
+            </ul>
+        </section>
+
+        <h2 class="titulo-secao">Estatísticas do histórico</h2>
+
+        <p class="descricao-secao">
+            Valores registrados nas últimas 100 medições disponíveis.
+        </p>
+
+        <section class="estatisticas">
+
+            <article class="card estatistica">
+                <h2>Temperatura mínima</h2>
+                <div class="valor">
+                    <span id="temp-min">--</span>
+                    <span class="unidade">°C</span>
+                </div>
+            </article>
+
+            <article class="card estatistica">
+                <h2>Temperatura máxima</h2>
+                <div class="valor">
+                    <span id="temp-max">--</span>
+                    <span class="unidade">°C</span>
+                </div>
+            </article>
+
+            <article class="card estatistica">
+                <h2>Umidade mínima</h2>
+                <div class="valor">
+                    <span id="umid-min">--</span>
+                    <span class="unidade">%</span>
+                </div>
+            </article>
+
+            <article class="card estatistica">
+                <h2>Umidade máxima</h2>
+                <div class="valor">
+                    <span id="umid-max">--</span>
+                    <span class="unidade">%</span>
+                </div>
             </article>
 
         </section>
 
         <section class="painel">
             <h2>Histórico de temperatura</h2>
-            <p>Evolução das últimas medições em °C.</p>
+            <p>Faixa operacional: 18 a 27 °C.</p>
             <canvas id="grafico-temperatura"></canvas>
         </section>
 
         <section class="painel">
             <h2>Histórico de umidade</h2>
-            <p>Evolução das últimas medições em %.</p>
+            <p>Faixa operacional: 40 a 60%.</p>
             <canvas id="grafico-umidade"></canvas>
         </section>
 
         <section class="painel">
             <h2>Últimas leituras</h2>
+
             <div class="tabela-container">
                 <table>
                     <thead>
@@ -94,6 +187,7 @@
                             <th>Condição</th>
                         </tr>
                     </thead>
+
                     <tbody id="historico">
                         <tr>
                             <td colspan="5">
@@ -110,8 +204,9 @@
     </main>
 
     <footer>
-        <p>Projeto Integrador de Monitoramento IoT</p>
+        <p>DataCenter Guard | Projeto Integrador IoT</p>
         <p>ESP32 · DHT22 · Supabase · Cloudflare Pages</p>
+        <p>Versão 2.0 — Monitoramento Ambiental</p>
     </footer>
 
     <script src="script.js"></script>
